@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33d2fc0a270921745bd6fe53049033f3, type: 3}
+  m_Name: LevelsData
+  m_EditorClassIdentifier: 
+  levels:
+  - levelPrefab: {fileID: 1247639849336190057, guid: 369a3f4e17fc6724faaf3a60bb656d42, type: 3}
+    ballSpeed: 15
+    time: 15
+  - levelPrefab: {fileID: 4315139864072198445, guid: c8cbb61d388ddfc4c81530b4017fe03c, type: 3}
+    ballSpeed: 15
+    time: 30
+  - levelPrefab: {fileID: 9019270894563490293, guid: 280420e4e71a32a4986d019e062b0a48, type: 3}
+    ballSpeed: 15
+    time: 35
+  - levelPrefab: {fileID: 5530863600529265283, guid: d0842283a4f287446bface2101f2c73d, type: 3}
+    ballSpeed: 15
+    time: 35
+  - levelPrefab: {fileID: 4457356812867866932, guid: c566e3de85c874744a5fc544a1338779, type: 3}
+    ballSpeed: 15
+    time: 35
