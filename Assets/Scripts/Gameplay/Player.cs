@@ -11,48 +11,55 @@ namespace Gameplay
 {
     public class Player : MonoBehaviour
     {
-        private float maxSpeed;
-        private float speed;
-        private const float RacingAcceleration = 60f;
-
-        private const float SphereRadius = 0.25f;
-        private float sphereRadiusSqr;
-        private const float SphereDiameter = SphereRadius * 2;
-        private const float BlockSize = 1f;
-        private IEnumerator moveCoroutine;
-        private Vector3 moveDirection;
-        private bool isReturning;
-        private const int MaxClosestRings = 10;
-        private readonly List<ClosestRing> closestRings = new List<ClosestRing>();
-        private readonly RaycastHit[] hits = new RaycastHit[MaxClosestRings];
-        private float leavingDistanceSqr;
-        private const float RingRadius = 0.5f;
-
-        private const float MaxSecondsBetweenSwipeAndBallStop = 0.4f;
-        private Vector2 nextSwipeDirection;
-        private float timeDetectingSwipe;
-
         [Inject]
         private SignalBus signalBus;
 
         [Inject] 
         private LevelProvider levelProvider;
+        
+        private float maxSpeed;
+        private float speed;
+        private const float RacingAcceleration = 60f;
+        private const float SphereRadius = 0.25f;
+        private const float SphereDiameter = SphereRadius * 2;
+        private const float RingRadius = 0.5f;
+        private float sphereSqrRadius;
+        private const float BlockSize = 1f;
+        private float leavingSqrDistance;
+        
+        private IEnumerator moveCoroutine;
+        private Vector3 moveDirection;
+        private bool isReturning;
+        
+        private const int MaxClosestRings = 10;
+        private readonly List<ClosestRing> closestRings = new List<ClosestRing>();
+        private readonly RaycastHit[] hits = new RaycastHit[MaxClosestRings];
+        
+        private const float MaxSecondsBetweenSwipeAndBallStop = 0.4f;
+        private Vector2 nextSwipeDirection;
+        private float detectingSwipeTime;
+
         private void Start()
         {
             signalBus.Subscribe<PlayerCollidedWithRingSignal>(OnPlayerCollidedWithRing);
             signalBus.Subscribe<SwipeDetectedSignal>(OnSwipeDetected);
             moveDirection = Vector3.zero;
-            maxSpeed = levelProvider.ProvideCurrentLevel().ballSpeed;
-            leavingDistanceSqr = Mathf.Pow(SphereRadius + RingRadius, 2);
-            sphereRadiusSqr = Mathf.Pow(SphereRadius, 2);
+            CalculateConstants();
         }
 
+        private void CalculateConstants()
+        {
+            maxSpeed = levelProvider.ProvideCurrentLevel().ballSpeed;
+            leavingSqrDistance = Mathf.Pow(SphereRadius + RingRadius, 2);
+            sphereSqrRadius = Mathf.Pow(SphereRadius, 2);
+        }
+        
         private void OnSwipeDetected(SwipeDetectedSignal signal)
         {
             if (moveDirection != Vector3.zero)
             {
                 nextSwipeDirection = signal.direction;
-                timeDetectingSwipe = Time.time;
+                detectingSwipeTime = Time.time;
                 return;
             }
             if (moveCoroutine != null) StopCoroutine(moveCoroutine);
@@ -65,6 +72,11 @@ namespace Gameplay
 
            StartCoroutine(moveCoroutine);
         }
+        
+        private void OnPlayerCollidedWithRing()
+        {
+            RevertMoveDirection();
+        }
 
         private IEnumerator Move(Vector3 direction)
         {
@@ -72,60 +84,26 @@ namespace Gameplay
             var oppositeBlockHitInfo = GetHitInfo();
             var oppositeBlockHitPoint = oppositeBlockHitInfo.point;
             var stopPoint = oppositeBlockHitPoint - moveDirection * (BlockSize / 2);
+            var waitForFixedUpdate = new WaitForFixedUpdate();
             while (true)
             {
-                var distanceToBlockSqr = (oppositeBlockHitPoint - transform.position).sqrMagnitude;
-                if (distanceToBlockSqr < sphereRadiusSqr)
+                var sqrDistanceToBlock = (oppositeBlockHitPoint - transform.position).sqrMagnitude;
+                if (sqrDistanceToBlock < sphereSqrRadius)
                 {
-                    moveDirection *= -1;
                     var bounceCoroutine = Bounce(stopPoint);
                     StartCoroutine(bounceCoroutine);
-                
-                    var flashImpulse = Mathf.Pow(speed / maxSpeed, 2);
-                    oppositeBlockHitInfo.collider.gameObject.GetComponent<FieldBlock>().Flash(flashImpulse);
+                    BlockFlash(oppositeBlockHitInfo);
                     break;
                 }
 
-                speed += RacingAcceleration * Time.deltaTime;
-                if (speed >= maxSpeed) speed = maxSpeed;
+                UpdateSpeed();
                 if (!isReturning) CheckPassingThroughRings();
             
                 transform.Translate(moveDirection * (speed * Time.deltaTime), Space.World);
-                yield return new WaitForFixedUpdate();
+                yield return waitForFixedUpdate;
             }
         }
-        private RaycastHit GetHitInfo()
-        {
-            var ray = new Ray(transform.position, moveDirection);
-            // Debug.DrawRay(transform.position, moveDirection * 100f, Color.red);
-            Physics.Raycast(ray, out var hitInfo, 15f, 256);
-            return hitInfo;
-        }
-
-        private IEnumerator Bounce(Vector3 stopPoint)
-        {
-            while (true)
-            {
-                var dirToStopPoint = stopPoint - transform.position;
-                var distance = dirToStopPoint.magnitude;
-                var bouncingAcceleration = -Mathf.Pow(speed, 2) / (2 * distance);
-                speed += bouncingAcceleration * Time.deltaTime;
-                transform.Translate(moveDirection * (speed * Time.deltaTime), Space.World);
-
-                if (speed <= 0.2f || distance <= 0)
-                {
-                    transform.position = stopPoint;
-                    moveDirection = Vector3.zero;
-                    speed = 0;
-                    isReturning = false;
-                    GetComponent<SphereCollider>().enabled = true;
-                    CheckNextSwipe();
-                    yield break;
-                }
-                yield return new WaitForFixedUpdate();
-            }
-        }
-
+        
         private void RevertMoveDirection()
         {
             isReturning = true;
@@ -138,10 +116,48 @@ namespace Gameplay
             moveCoroutine = Move(oppositeDirection);
             StartCoroutine(moveCoroutine);
         }
-        private void OnPlayerCollidedWithRing()
+        
+        private RaycastHit GetHitInfo()
         {
-            RevertMoveDirection();
+            var ray = new Ray(transform.position, moveDirection);
+            Physics.Raycast(ray, out var hitInfo, 15f, 256);
+            return hitInfo;
         }
+
+        private IEnumerator Bounce(Vector3 stopPoint)
+        {
+            moveDirection *= -1;
+            var waitForFixedUpdate = new WaitForFixedUpdate();
+            while (true)
+            {
+                var dirToStopPoint = stopPoint - transform.position;
+                var distance = dirToStopPoint.magnitude;
+                var bouncingAcceleration = -Mathf.Pow(speed, 2) / (2 * distance);
+                speed += bouncingAcceleration * Time.deltaTime;
+                transform.Translate(moveDirection * (speed * Time.deltaTime), Space.World);
+
+                if (speed <= 0.2f || distance <= 0)
+                {
+                    Stop(stopPoint);
+                    CheckNextSwipe();
+                    yield break;
+                }
+                yield return waitForFixedUpdate;
+            }
+        }
+
+        private void BlockFlash(RaycastHit blockHitInfo)
+        {
+            var flashImpulse = Mathf.Pow(speed / maxSpeed, 2);
+            blockHitInfo.collider.gameObject.GetComponent<FieldBlock>().Flash(flashImpulse);
+        }
+        
+        private void UpdateSpeed()
+        {
+            speed += RacingAcceleration * Time.deltaTime;
+            if (speed >= maxSpeed) speed = maxSpeed;
+        }
+        
         private void CheckPassingThroughRings()
         {
             var toRemove = new List<ClosestRing>();
@@ -155,8 +171,8 @@ namespace Gameplay
                 else
                 {
                     var distanceVector = ring.Collider.gameObject.transform.position - transform.position;
-                    var distanceToCenterSqr = Vector3.SqrMagnitude(distanceVector);
-                    if (distanceToCenterSqr < leavingDistanceSqr) continue;
+                    var sqrDistanceToCenter = Vector3.SqrMagnitude(distanceVector);
+                    if (sqrDistanceToCenter < leavingSqrDistance) continue;
                 
                     if (ring.PassedThroughCenter)
                     {
@@ -170,9 +186,27 @@ namespace Gameplay
                     }
                 }
             }
-
             foreach (var ring in toRemove) closestRings.Remove(ring);
         }
+
+        private void Stop(Vector3 stopPoint)
+        {
+            transform.position = stopPoint;
+            moveDirection = Vector3.zero;
+            speed = 0;
+            isReturning = false;
+            GetComponent<SphereCollider>().enabled = true;
+        }
+        
+        private void CheckNextSwipe()
+        {
+            if (nextSwipeDirection != Vector2.zero && Time.time - detectingSwipeTime <= MaxSecondsBetweenSwipeAndBallStop)
+            {
+                OnSwipeDetected(new SwipeDetectedSignal {direction = nextSwipeDirection});
+                nextSwipeDirection = Vector2.zero;
+            }
+        }
+        
         private void SetClosestRings()
         {
             var ray = new Ray(transform.position - moveDirection * SphereRadius, moveDirection);
@@ -190,20 +224,13 @@ namespace Gameplay
                 });
             }
         }
+        
         private void CollectRing(GameObject ring)
         {
             ring.GetComponent<RingDestroyer>().Destroy();
             signalBus.Fire<RingDestroyedSignal>();
         }
 
-        private void CheckNextSwipe()
-        {
-            if (nextSwipeDirection != Vector2.zero && Time.time - timeDetectingSwipe <= MaxSecondsBetweenSwipeAndBallStop)
-            {
-                OnSwipeDetected(new SwipeDetectedSignal {direction = nextSwipeDirection});
-                nextSwipeDirection = Vector2.zero;
-            }
-        }
         private void OnDestroy()
         {
             signalBus.Unsubscribe<PlayerCollidedWithRingSignal>(OnPlayerCollidedWithRing);

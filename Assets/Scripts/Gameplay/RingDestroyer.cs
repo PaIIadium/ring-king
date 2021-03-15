@@ -6,17 +6,6 @@ namespace Gameplay
 {
     public class RingDestroyer : MonoBehaviour
     {
-        private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
-        private Color defaultColor;
-        private float defaultEmissiveIntensity;
-        private float defaultPointLightIntensity;
-        private Vector3 defaultScale;
-        private float defaultRange;
-        private Renderer blockRenderer;
-        private Light[] lightPoints;
-        private const float ExplosionDurationFraction = 0.2f;
-        
-
         [SerializeField]
         private float flashDuration;
 
@@ -32,6 +21,16 @@ namespace Gameplay
         [SerializeField]
         private float flashRange;
 
+        private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
+        private Color defaultColor;
+        private float defaultEmissiveIntensity;
+        private float defaultPointLightIntensity;
+        private Vector3 defaultScale;
+        private float defaultRange;
+        private Renderer blockRenderer;
+        private Light[] lightPoints;
+        private const float ExplosionDurationFraction = 0.2f;
+        
         private void Start()
         {
             blockRenderer = GetComponent<Renderer>();
@@ -48,6 +47,25 @@ namespace Gameplay
             StartCoroutine(nameof(Destroying));
         }
 
+        public IEnumerator Destroying()
+        {
+            var coroutinesList = new List<Coroutine>
+            {
+                StartCoroutine(LightningAnimation()),
+                StartCoroutine(ChangeScale())
+            };
+
+            yield return WaitForAllCoroutines(coroutinesList);
+            Destroy(gameObject);
+        }
+        
+        private IEnumerator LightningAnimation()
+        {
+            foreach (var lightPoint in lightPoints) lightPoint.shadows = LightShadows.Hard;
+            yield return StartCoroutine(Flash());
+            yield return StartCoroutine(Extinct());
+        }
+        
         private IEnumerator ChangeScale()
         {
             var stopwatch = 0f;
@@ -67,7 +85,6 @@ namespace Gameplay
             var stopwatch = 0f;
             while (stopwatch < explosionDuration)
             {
-                Debug.Log("Flash");
                 var progress = Mathf.Pow(stopwatch / explosionDuration, 2);
                 var emissiveIntensity = Mathf.Lerp(defaultEmissiveIntensity, flashEmissiveIntensity, progress);
                 var lightPointIntensity =
@@ -87,7 +104,6 @@ namespace Gameplay
             var stopwatch = 0f;
             while (stopwatch < extinctionDuration)
             {
-                Debug.Log("Extinct");
                 var progress = 1 - stopwatch / extinctionDuration;
                 var emissiveIntensity = Mathf.Lerp(defaultEmissiveIntensity, flashEmissiveIntensity, progress);
                 var lightPointIntensity =
@@ -100,32 +116,10 @@ namespace Gameplay
                 yield return null;
             }
         }
-        
-        public IEnumerator Destroying()
-        {
-            var coroutinesList = new List<Coroutine>
-            {
-                StartCoroutine(LightningAnimation()),
-                StartCoroutine(ChangeScale())
-            };
 
-            yield return WaitAllCoroutines(coroutinesList);
-            Destroy(gameObject);
-        }
-
-        private IEnumerator LightningAnimation()
+        private IEnumerator WaitForAllCoroutines(List<Coroutine> coroutines)
         {
-            foreach (var lightPoint in lightPoints) lightPoint.shadows = LightShadows.Hard;
-            yield return StartCoroutine(Flash());
-            yield return StartCoroutine(Extinct());
-        }
-
-        private IEnumerator WaitAllCoroutines(List<Coroutine> coroutines)
-        {
-            foreach (var coroutine in coroutines)
-            {
-                yield return coroutine;
-            }
+            foreach (var coroutine in coroutines) yield return coroutine;
         }
 
         private void SetupLightColor(Color color, float intensity, float progress)

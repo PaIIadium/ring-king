@@ -8,10 +8,9 @@ namespace UI
     {
         [Inject] 
         private SignalBus signalBus;
-
+        
         private PausePanel pausePanel;
-
-
+        
         public void Start()
         {
             pausePanel = FindObjectOfType<PausePanel>();

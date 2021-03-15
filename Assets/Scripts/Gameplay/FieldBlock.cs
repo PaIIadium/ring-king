@@ -5,13 +5,6 @@ namespace Gameplay
 {
     public class FieldBlock : MonoBehaviour
     {
-        private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
-        private bool isFlashing;
-        private Color defaultColor;
-        private float defaultIntensity;
-        private Renderer blockRenderer;
-        private float maxIntensity;
-    
         [SerializeField]
         private float flashDuration;
     
@@ -20,6 +13,13 @@ namespace Gameplay
     
         [SerializeField]
         private float flashIntensity;
+        
+        private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
+        private Color defaultColor;
+        private float defaultIntensity;
+        private Renderer blockRenderer;
+        private float maxIntensity;
+
         private void Start()
         {
             blockRenderer = GetComponent<Renderer>();

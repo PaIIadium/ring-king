@@ -15,6 +15,7 @@ namespace GameUtils
             levelsData = Resources.Load<Levels.Levels>(Path.Combine("Levels", "LevelsData"));
             startMiniature = Resources.Load<GameObject>("Miniature");
         }
+        
         public Level ProvideNextLevel()
         {
             if (currentLevel == levelsData.levels.Count - 1) currentLevel = 0;

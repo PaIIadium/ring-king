@@ -5,10 +5,6 @@ namespace Gameplay
 {
     public class RingLightPoint : MonoBehaviour
     {
-        private Color defaultColor;
-        private float defaultIntensity;
-        private float defaultRange;
-
         [SerializeField]
         private float flashDuration;
 
@@ -23,6 +19,10 @@ namespace Gameplay
 
         [SerializeField]
         private float explosionDurationFraction = 0.25f;
+        
+        private Color defaultColor;
+        private float defaultIntensity;
+        private float defaultRange;
 
         private Light lightPoint;
         private float extinctionDuration;

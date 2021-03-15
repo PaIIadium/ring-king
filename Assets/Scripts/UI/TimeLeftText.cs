@@ -7,13 +7,14 @@ namespace UI
 {
     public class TimeLeftText : MonoBehaviour
     {
-        private TMP_Text tmp;
         [Inject] 
         private SignalBus signalBus;
 
         [Inject] 
         private LevelState levelState;
 
+        private TMP_Text tmp;
+        
         private void Start()
         {
             tmp = GetComponent<TMP_Text>();

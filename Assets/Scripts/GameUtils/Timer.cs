@@ -7,6 +7,7 @@ namespace GameUtils
     {
         [Inject] 
         private SignalBus signalBus;
+        
         public float TimeLeft { get; private set; }
         private bool isRunning;
 
@@ -23,15 +24,17 @@ namespace GameUtils
         {
             isRunning = false;
         }
+        
         private void Update()
         {
-            if (isRunning && TimeLeft < 0)
+            if (!isRunning) return;
+            TimeLeft -= Time.deltaTime;
+            if (TimeLeft < 0)
             {
                 TimeLeft = 0;
                 isRunning = false;
                 signalBus.Fire(finalSignal);
-            } 
-            if (isRunning) TimeLeft -= Time.deltaTime;
+            }
         }
     }
 }

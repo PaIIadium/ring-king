@@ -13,13 +13,13 @@ namespace GameUtils
         private Level currentLevel;
 
         public int RingsLeft { get; private set; }
+        
         public float TimeLeft
         {
             get => timer.TimeLeft;
             private set => timer.StartTimer(value, new LevelFailedSignal());
         }
         
-        [Inject]
         public LevelState(SignalBus signalBus)
         {
             this.signalBus = signalBus;

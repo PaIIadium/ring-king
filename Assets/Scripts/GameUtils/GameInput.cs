@@ -23,24 +23,6 @@ namespace GameUtils
             LeanTouch.OnFingerUpdate += HandleFinger;
         }
 
-        private void HandleSwipe(LeanFinger finger)
-        {
-            var direction = finger.ScaledDelta;
-            var sinAndCos45 = Mathf.Sqrt(2) / 2;
-            var angle45 = new Vector2(sinAndCos45, sinAndCos45);
-            var angle135 = new Vector2(-sinAndCos45, sinAndCos45);
-        
-            var angleWith45 = Vector2.Angle(angle45, direction);
-            var angleWith135 = Vector2.Angle(angle135, direction);
-
-            Vector2 vector;
-            if (angleWith45 < 90 && angleWith135 < 90) vector = Vector2.up;
-            else if (angleWith45 < 90) vector = Vector2.right;
-            else if (angleWith135 < 90) vector = Vector2.left;
-            else vector = Vector2.down;
-            signalBus.Fire(new SwipeDetectedSignal {direction = vector});
-        }
-
         private void HandleFinger(LeanFinger finger)
         {
             var sqrSpeed = (finger.ScreenDelta / Time.deltaTime).sqrMagnitude;
@@ -66,6 +48,24 @@ namespace GameUtils
                 swipeEnded = true;
                 isSwiping = false;
             }
+        }
+        
+        private void HandleSwipe(LeanFinger finger)
+        {
+            var sinAndCos45 = Mathf.Sqrt(2) / 2;
+            var angle45 = new Vector2(sinAndCos45, sinAndCos45);
+            var angle135 = new Vector2(-sinAndCos45, sinAndCos45);
+        
+            var direction = finger.ScaledDelta;
+            var angleWith45 = Vector2.Angle(angle45, direction);
+            var angleWith135 = Vector2.Angle(angle135, direction);
+
+            Vector2 swipeDirection;
+            if (angleWith45 < 90 && angleWith135 < 90) swipeDirection = Vector2.up;
+            else if (angleWith45 < 90) swipeDirection = Vector2.right;
+            else if (angleWith135 < 90) swipeDirection = Vector2.left;
+            else swipeDirection = Vector2.down;
+            signalBus.Fire(new SwipeDetectedSignal {direction = swipeDirection});
         }
     }
 }

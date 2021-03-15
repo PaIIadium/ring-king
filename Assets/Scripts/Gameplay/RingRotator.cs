@@ -9,6 +9,7 @@ namespace Gameplay
 
         [SerializeField] 
         private bool isReversed;
+        
         private void Update()
         {
             Rotate();
